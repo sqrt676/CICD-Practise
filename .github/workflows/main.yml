@@ -1,0 +1,56 @@
+name: Python CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/*
+  pull_request:
+    branches:
+      - main
+      - feature/*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Cache Python packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          pytest
+
+      - name: Start FastAPI server (Optional)
+        run: |
+          nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Test FastAPI Server
+        run: |
+          curl --retry 10 --retry-delay 5 http://localhost:8000
+
+      # Optionally, you can add deployment steps here
+      # - name: Deploy
+      #   run: |
+      #     echo "Deploying application..."
+      #     # Add your deployment script/commands here
